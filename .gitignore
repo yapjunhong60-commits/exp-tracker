@@ -1,0 +1,30 @@
+# Ignore environment variables file
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore IDE settings
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets (IMPORTANT! This keeps your credentials safe)
+*.json
+.env
+*.pem
+
+# Streamlit
+.streamlit/secrets.toml
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS junk
+.DS_Store
+Thumbs.db
