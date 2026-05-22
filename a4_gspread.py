@@ -24,70 +24,104 @@ def connect_to_gsheet():
     sheet = client.open("Exp_Tracker_Data").sheet1
     return sheet
 
-# Connect to Google Sheets
-sheet = connect_to_gsheet()
-
-# Get all data from the sheet
-def load_data_from_gsheet():
-    """Load all expenses from Google Sheets into a DataFrame"""
+def load_data_from_gsheet(sheet):
     try:
         records = sheet.get_all_records()
         if records:
             # Convert to DataFrame
             df = pd.DataFrame(records)
+            return df
         else:
-            # Empty DataFrame with correct columns
-            df = pd.DataFrame(columns=["Date", "Description", "Amount", "Category"])
-        return df
+            st.error("Sheet is unexpectedly empty!")
+            return None
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame(columns=["Date", "Description", "Amount", "Category"])
-
-def add_expense_to_gsheet(date, description, amount, category):
+        return None
+    
+def add_expense_to_gsheet(sheet, date, description, amount, category):
+    # try:
+    #     sheet.append_row([str(date), description, amount, category])
+    #     return True
+    # except Exception as e:
+    #     st.error(f"Error adding expense: {e}")
+    #     return False
     try:
-        sheet.append_row([str(date), description, amount, category])
+        headers = sheet.row_values(1)
+        date_col     = headers.index("Date")         + 1
+        desc_col     = headers.index("Description")  + 1
+        amount_col   = headers.index("Amount")       + 1
+        category_col = headers.index("Category")     + 1
+
+        next_row = len(sheet.col_values(1)) + 1
+        sheet.update_cell(next_row, date_col, str(date))   
+        sheet.update_cell(next_row, desc_col, description) 
+        sheet.update_cell(next_row, amount_col, amount)    
+        sheet.update_cell(next_row, category_col, category)
         return True
     except Exception as e:
         st.error(f"Error adding expense: {e}")
         return False
 
-# Load existing data
-df = load_data_from_gsheet()
+def ui_submission(sheet):
+    st.title("Smart Exp Tracker")
+    with st.form("expense_form"):
+        date = st.date_input("Date")
+        category = st.text_input("Category")
+        description = st.text_input("Description")
+        amount = st.number_input("Amount", min_value=0.0, format="%.2f")
+        
+        submitted = st.form_submit_button("Add Expense")
+        if submitted:
+            if not description or not category:
+                st.warning("Please fill in both Description and Category!")
+                return False
+            elif amount <= 0:
+                st.warning("Amount must be greater than 0!")
+                return False
+            else:
+                success = add_expense_to_gsheet(sheet, date, description, amount, category)
+                if success:
+                    st.success(f"✅ Added: {description} - ${amount:.2f} ({category})")
+                    return True
+                return False
+        return False
 
-st.title("Smart Exp Tracker")
-with st.form("expense_form"):
-    date = st.date_input("Date")
-    description = st.text_input("Description")
-    category = st.text_input("Category")
-    amount = st.number_input("Amount", min_value=0.0, format="%.2f")
-    submitted = st.form_submit_button("Add Expense")
+def display_charts(df):
+    st.subheader("All Expenses")
+    st.dataframe(df)
 
-    if submitted:
-        if not description or not category:
-            st.warning("Please fill in both Description and Category!")
-        elif amount <= 0:
-            st.warning("Amount must be greater than 0!")
-        else:
-            success = add_expense_to_gsheet(date, description, amount, category)
-            if success:
-                df = load_data_from_gsheet()
-                st.success(f"✅ Added: {description} - ${amount:.2f} ({category})")
+    if not df.empty:
+        st.subheader("Expense Breakdown by Category")
+        category_totals = df.groupby("Category")["Amount"].sum()
 
-st.subheader("All Expenses")
-st.dataframe(df)
+        # Bar Chart
+        fig, ax = plt.subplots()
+        category_totals.plot(kind="bar", ax=ax)
+        ax.set_ylabel("Amount")
+        st.pyplot(fig)
 
-if not df.empty:
-    st.subheader("Expense Breakdown by Category")
-    category_totals = df.groupby("Category")["Amount"].sum()
+        # Pie Chart
+        st.subheader("Category Distribution")
+        fig2, ax2 = plt.subplots()
+        category_totals.plot(kind="pie", autopct="%1.1f%%", ax=ax2)
+        st.pyplot(fig2)
 
-    # Bar Chart
-    fig, ax = plt.subplots()
-    category_totals.plot(kind="bar", ax=ax)
-    ax.set_ylabel("Amount")
-    st.pyplot(fig)
+def main():
+    sheet = connect_to_gsheet()
+    df = load_data_from_gsheet(sheet)
+    if df is None:
+        st.stop()
+    if ui_submission(sheet):
+        df = load_data_from_gsheet(sheet)
+    display_charts(df)
 
-    # Pie Chart
-    st.subheader("Category Distribution")
-    fig2, ax2 = plt.subplots()
-    category_totals.plot(kind="pie", autopct="%1.1f%%", ax=ax2)
-    st.pyplot(fig2)
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
