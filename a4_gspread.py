@@ -10,9 +10,15 @@ from google.oauth2.service_account import Credentials
 # os.chdir(script_direc)
 
 def connect_to_gsheet():
-    creds_dict = json.load(open("exp-tracker-496805-7f9858049fd3.json"))
+    try:
+        creds_dict = st.secrets["google_credentials"]
+        print("Using credentials from Streamlit secrets")
+    except:
+        creds_dict = json.load(open("exp-tracker-496805-7f9858049fd3.json"))
+        print("Using credentials from local JSON file")
+
     scope = ["https://spreadsheets.google.com/feeds", 
-             "https://www.googleapis.com/auth/drive"]
+            "https://www.googleapis.com/auth/drive"]
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
     sheet = client.open("Exp_Tracker_Data").sheet1
@@ -48,7 +54,7 @@ def add_expense_to_gsheet(date, description, amount, category):
 # Load existing data
 df = load_data_from_gsheet()
 
-st.title("Smart Expense Tracker")
+st.title("Smart Exp Tracker")
 with st.form("expense_form"):
     date = st.date_input("Date")
     description = st.text_input("Description")
