@@ -38,7 +38,7 @@ def load_data_from_gsheet(sheet):
         st.error(f"Error loading data: {e}")
         return None
     
-def add_expense_to_gsheet(sheet, in_out, date, description, amount, category):
+def add_expense_to_gsheet(sheet, date, description, amount, category):
     # try:
     #     sheet.append_row([in_out, str(date), description, amount, category])
     #     return True
@@ -95,7 +95,7 @@ def ui_submission(sheet):
                 st.warning("Amount must be greater than 0!")
                 return False
             else:
-                success = add_expense_to_gsheet(sheet, in_out, date, description, amount, category)
+                success = add_expense_to_gsheet(sheet, date, description, amount, category)
                 if success:
                     st.success(f"✅ Added: {description} - ${amount:.2f} ({category})")
                     return True
