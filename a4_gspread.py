@@ -113,7 +113,6 @@ def ui_submission(sheet):
 def display_charts(df):
     st.subheader("All Exp")
     st.dataframe(df)
-
     if not df.empty:
         st.subheader("Current Balances by Category")
         # Simple calculation (no lambda)
@@ -122,7 +121,6 @@ def display_charts(df):
         category_balance = in_sum.fillna(0) - out_sum.fillna(0)
         for category, balance in category_balance.items():
             st.write(f"**{category}:** {balance:,.2f}")
-
         # # Display as clean columns
         # cols = st.columns(min(len(category_balance), 3))
         # for i, (cat, bal) in enumerate(category_balance.items()):
@@ -130,17 +128,15 @@ def display_charts(df):
         #         color = "green" if bal >= 0 else "red"
         #         st.markdown(f"**{cat}**  \n:${bal:,.2f}")
 
-        st.subheader("Exp Breakdown by Category")
-        category_totals = df.groupby("Category")["Amount"].sum()
-
-        # Bar Chart
+        st.subheader("Exp Breakdown by Subcategory") # Bar Chart
+        df_filtered = df[df["Subcategory"] != "Balance"]
+        category_totals = df_filtered.groupby("Subcategory")["Amount"].sum()
         fig, ax = plt.subplots()
         category_totals.plot(kind="bar", ax=ax)
         ax.set_ylabel("Amount")
         st.pyplot(fig)
 
-        # Pie Chart
-        st.subheader("Category Distribution")
+        st.subheader("Category Distribution") # Pie Chart
         fig2, ax2 = plt.subplots()
         category_totals.plot(kind="pie", autopct="%1.1f%%", ax=ax2)
         st.pyplot(fig2)
