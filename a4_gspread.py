@@ -38,7 +38,7 @@ def load_data_from_gsheet(sheet):
         st.error(f"Error loading data: {e}")
         return None
     
-def add_expense_to_gsheet(sheet, in_out, date, description, amount, category):
+def add_expense_to_gsheet(sheet, in_out, date, description, amount, category, subcategory):
     # try:
     #     sheet.append_row([in_out, str(date), description, amount, category])
     #     return True
@@ -49,11 +49,12 @@ def add_expense_to_gsheet(sheet, in_out, date, description, amount, category):
     
     try:
         headers = sheet.row_values(1)
-        in_out_col   = headers.index("In/Out")       + 1
-        date_col     = headers.index("Date")         + 1
-        desc_col     = headers.index("Description")  + 1
-        amount_col   = headers.index("Amount")       + 1
-        category_col = headers.index("Category")     + 1
+        in_out_col   = headers.index("In/Out")      + 1
+        date_col     = headers.index("Date")        + 1
+        desc_col     = headers.index("Description") + 1
+        amount_col   = headers.index("Amount")      + 1
+        category_col = headers.index("Category")    + 1
+        subcateg_col = headers.index("Subcategory") + 1
         next_row = len(sheet.col_values(1)) + 1
         # sheet.update_cell(next_row, date_col, str(date))   
         # sheet.update_cell(next_row, desc_col, description) 
@@ -74,6 +75,9 @@ def add_expense_to_gsheet(sheet, in_out, date, description, amount, category):
         }, {
             'range': f'{chr(64 + category_col)}{next_row}',
             'values': [[category]]
+        }, {
+            'range': f'{chr(64 + subcateg_col)}{next_row}',
+            'values': [[subcategory]]
         }])
         return True
     except Exception as e:
@@ -83,9 +87,10 @@ def add_expense_to_gsheet(sheet, in_out, date, description, amount, category):
 def ui_submission(sheet):
     st.title("Exp")
     with st.form("exp_form"):
-        in_out = st.selectbox("In/Out", ["In", "Out"], index=1)
+        in_out = st.selectbox("In Or Out", ["In","Out"], index=1)
         date = st.date_input("Date")
         category = st.text_input("Category", value="c")
+        subcategory = st.selectbox("Subcategory", ["Accomodation","Balance","Essentials","Food","Health","Misc","Transport","Jobhunt"], index=3) #Food more common
         description = st.text_input("Description")
         amount = st.number_input("Amount", min_value=0.0, format="%.2f")
         
@@ -98,7 +103,7 @@ def ui_submission(sheet):
                 st.warning("Amount must be greater than 0!")
                 return False
             else:
-                success = add_expense_to_gsheet(sheet, in_out, date, description, amount, category)
+                success = add_expense_to_gsheet(sheet, in_out, date, description, amount, category, subcategory)
                 if success:
                     st.success(f"✅ Added: {description} - ${amount:.2f} ({category})")
                     return True
@@ -110,6 +115,21 @@ def display_charts(df):
     st.dataframe(df)
 
     if not df.empty:
+        st.subheader("Current Balances by Category")
+        # Simple calculation (no lambda)
+        in_sum = df[df["In/Out"] == "In"].groupby("Category")["Amount"].sum()
+        out_sum = df[df["In/Out"] == "Out"].groupby("Category")["Amount"].sum()
+        category_balance = in_sum.fillna(0) - out_sum.fillna(0)
+        for category, balance in category_balance.items():
+            st.write(f"**{category}:** {balance:,.2f}")
+
+        # # Display as clean columns
+        # cols = st.columns(min(len(category_balance), 3))
+        # for i, (cat, bal) in enumerate(category_balance.items()):
+        #     with cols[i % 3]:
+        #         color = "green" if bal >= 0 else "red"
+        #         st.markdown(f"**{cat}**  \n:${bal:,.2f}")
+
         st.subheader("Exp Breakdown by Category")
         category_totals = df.groupby("Category")["Amount"].sum()
 
@@ -133,15 +153,6 @@ def main():
     if ui_submission(sheet):
         df = load_data_from_gsheet(sheet)
     display_charts(df)
-
-# def main():
-#     sheet = connect_to_gsheet()
-#     # Show form and check if expense was added
-#     if ui_submission(sheet):
-#         st.rerun()  # ← Complete refresh
-#     # Always load fresh data after potential changes
-#     df = load_data_from_gsheet(sheet)
-#     display_charts(df)
 
 if __name__ == "__main__":
     main()
