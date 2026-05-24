@@ -38,7 +38,7 @@ def load_data_from_gsheet(sheet):
         st.error(f"Error loading data: {e}")
         return None
     
-def add_expense_to_gsheet(sheet, date, description, amount, category):
+def add_expense_to_gsheet(sheet, in_out, date, description, amount, category):
     # try:
     #     sheet.append_row([in_out, str(date), description, amount, category])
     #     return True
@@ -49,6 +49,7 @@ def add_expense_to_gsheet(sheet, date, description, amount, category):
     
     try:
         headers = sheet.row_values(1)
+        in_out_col   = headers.index("In/Out")       + 1
         date_col     = headers.index("Date")         + 1
         desc_col     = headers.index("Description")  + 1
         amount_col   = headers.index("Amount")       + 1
@@ -59,6 +60,9 @@ def add_expense_to_gsheet(sheet, date, description, amount, category):
         # sheet.update_cell(next_row, amount_col, amount)    
         # sheet.update_cell(next_row, category_col, category)
         sheet.batch_update([{
+            'range': f'{chr(64 + in_out_col)}{next_row}',
+            'values': [[str(in_out)]]
+        }, {
             'range': f'{chr(64 + date_col)}{next_row}',
             'values': [[str(date)]]
         }, {
@@ -76,13 +80,12 @@ def add_expense_to_gsheet(sheet, date, description, amount, category):
         st.error(f"Error adding expense: {e}")
         return False
     
-
 def ui_submission(sheet):
     st.title("Smart Exp Tracker")
     with st.form("expense_form"):
-
+        in_out = st.selectbox("In/Out", ["In", "Out"], index=0)
         date = st.date_input("Date")
-        category = st.text_input("Category")
+        category = st.text_input("Category", value="c")
         description = st.text_input("Description")
         amount = st.number_input("Amount", min_value=0.0, format="%.2f")
         
@@ -95,7 +98,7 @@ def ui_submission(sheet):
                 st.warning("Amount must be greater than 0!")
                 return False
             else:
-                success = add_expense_to_gsheet(sheet, date, description, amount, category)
+                success = add_expense_to_gsheet(sheet, in_out, date, description, amount, category)
                 if success:
                     st.success(f"✅ Added: {description} - ${amount:.2f} ({category})")
                     return True
@@ -122,25 +125,23 @@ def display_charts(df):
         category_totals.plot(kind="pie", autopct="%1.1f%%", ax=ax2)
         st.pyplot(fig2)
 
-# def main():
-#     sheet = connect_to_gsheet()
-#     df = load_data_from_gsheet(sheet)
-#     if df is None:
-#         st.stop()
-#     if ui_submission(sheet):
-#         df = load_data_from_gsheet(sheet)
-#     display_charts(df)
-
 def main():
     sheet = connect_to_gsheet()
-    
-    # Show form and check if expense was added
-    if ui_submission(sheet):
-        st.rerun()  # ← Complete refresh
-    
-    # Always load fresh data after potential changes
     df = load_data_from_gsheet(sheet)
+    if df is None:
+        st.stop()
+    if ui_submission(sheet):
+        df = load_data_from_gsheet(sheet)
     display_charts(df)
+
+# def main():
+#     sheet = connect_to_gsheet()
+#     # Show form and check if expense was added
+#     if ui_submission(sheet):
+#         st.rerun()  # ← Complete refresh
+#     # Always load fresh data after potential changes
+#     df = load_data_from_gsheet(sheet)
+#     display_charts(df)
 
 if __name__ == "__main__":
     main()
