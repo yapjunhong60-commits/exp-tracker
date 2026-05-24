@@ -81,15 +81,15 @@ def add_expense_to_gsheet(sheet, in_out, date, description, amount, category):
         return False
     
 def ui_submission(sheet):
-    st.title("Smart Exp Tracker")
-    with st.form("expense_form"):
-        in_out = st.selectbox("In/Out", ["In", "Out"], index=0)
+    st.title("Exp")
+    with st.form("exp_form"):
+        in_out = st.selectbox("In/Out", ["In", "Out"], index=1)
         date = st.date_input("Date")
         category = st.text_input("Category", value="c")
         description = st.text_input("Description")
         amount = st.number_input("Amount", min_value=0.0, format="%.2f")
         
-        submitted = st.form_submit_button("Add Expense")
+        submitted = st.form_submit_button("Add Exp")
         if submitted:
             if not description or not category:
                 st.warning("Please fill in both Description and Category!")
@@ -106,11 +106,11 @@ def ui_submission(sheet):
         return False
 
 def display_charts(df):
-    st.subheader("All Expenses")
+    st.subheader("All Exp")
     st.dataframe(df)
 
     if not df.empty:
-        st.subheader("Expense Breakdown by Category")
+        st.subheader("Exp Breakdown by Category")
         category_totals = df.groupby("Category")["Amount"].sum()
 
         # Bar Chart
